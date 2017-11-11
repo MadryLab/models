@@ -74,9 +74,9 @@ VALIDATION_TARBALL="ILSVRC2012_img_val.tar"
 OUTPUT_PATH="${OUTDIR}validation/"
 mkdir -p "${OUTPUT_PATH}"
 cd "${OUTDIR}/.."
-echo "cp'ing /scratch/datasets/imagenet/${VALIDATION_TARBALL} to ${VALIDATION_TARBALL}."
+echo "cp'ing /scratch/engstrom/tars/${VALIDATION_TARBALL} to ${VALIDATION_TARBALL}."
 #wget -nd -c "${BASE_URL}/${VALIDATION_TARBALL}"
-cp /scratch/datasets/imagenet/${VALIDATION_TARBALL} ${VALIDATION_TARBALL}
+cp /scratch/engstrom/tars/${VALIDATION_TARBALL} ${VALIDATION_TARBALL}
 tar xf "${VALIDATION_TARBALL}" -C "${OUTPUT_PATH}"
 
 # Download all images from the ImageNet 2012 train dataset.
@@ -84,9 +84,9 @@ TRAIN_TARBALL="ILSVRC2012_img_train.tar"
 OUTPUT_PATH="${OUTDIR}train/"
 mkdir -p "${OUTPUT_PATH}"
 cd "${OUTDIR}/.."
-echo "cp'ing /scratch/datasets/imagenet/${TRAIN_TARBALL} to ${TRAIN_TARBALL}."
+echo "cp'ing /scratch/engstrom/tars/${TRAIN_TARBALL} to ${TRAIN_TARBALL}."
 #wget -nd -c "${BASE_URL}/${TRAIN_TARBALL}"
-cp /scratch/datasets/imagenet/${TRAIN_TARBALL} ${TRAIN_TARBALL}
+cp /scratch/engstrom/tars/${TRAIN_TARBALL} ${TRAIN_TARBALL}
 
 # Un-compress the individual tar-files within the train tar-file.
 echo "Uncompressing individual train tar-balls in the training data."
