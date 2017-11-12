@@ -237,10 +237,7 @@ def distort_image(image, height, width, bbox, thread_id=0, scope=None):
   # bounding box. If no box is supplied, then we assume the bounding box is
   # the entire image.
     tf.app.flags.DEFINE_integer('preproc_type', None,
-                                """0 = no random crop, 1 = normal""", required=True)
-
-    import pdb
-    pdb.set_trace()
+                                """0 = no random crop, 1 = normal""")
 
     if FLAGS.preproc_type == 1:      
       sample_distorted_bounding_box = tf.image.sample_distorted_bounding_box(
