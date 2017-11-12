@@ -248,7 +248,7 @@ def distort_image(image, height, width, bbox, thread_id=0, scope=None):
         use_image_if_no_bounding_boxes=True)
     elif FLAGS.preproc_type == 0:
       num_bboxes = tf.shape(bbox)[1]
-      is_zero = tf.equal(num_bboxes, tf.constant(0, dtype=tf.int32)):
+      is_zero = tf.equal(num_bboxes, tf.constant(0, dtype=tf.int32))
 
       def get_bbox_no_bbox():
         final_bbox = tf.stack([0,0,1,1])
