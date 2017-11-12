@@ -41,6 +41,7 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
+import numpy as np
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -245,9 +246,34 @@ def distort_image(image, height, width, bbox, thread_id=0, scope=None):
         area_range=[0.05, 1.0],
         max_attempts=100,
         use_image_if_no_bounding_boxes=True)
+    elif FLAGS.preproc_type == 0:
+      num_bboxes = tf.shape(bbox)[1]
+      is_zero = tf.equal(num_bboxes, tf.constant(0, dtype=tf.int32)):
 
-    import pdb
-    pdb.set_trace()
+      def get_bbox_no_bbox():
+        final_bbox = tf.stack([0,0,1,1])
+        final_begin = tf.stack([0,0,0])
+        final_size = tf.stack([-1,-1,-1])
+        return (final_begin, final_size, final_bbox)
+
+      def get_bbox_yes_bbox():
+        final_ymin = tf.reduce_min(bbox[0,:,0])
+        final_xmin = tf.reduce_min(bbox[0,:,1])
+        final_ymax = tf.reduce_max(bbox[0,:,2])
+        final_xmax = tf.reduce_max(bbox[0,:,3])
+        height, width, _ = tf.shape(image)
+
+        final_bbox = tf.stack([final_ymin, final_xmin, final_ymax, final_xmax])
+        final_begin = tf.stack([tf.cast(tf.floor(final_ymin*height), type=tf.int32),
+                                tf.cast(tf.floor(final_xmin*width), type=tf.int32),
+                                0])
+        final_size = tf.stack([tf.cast(tf.floor((final_ymax-final_ymin)*height), type=tf.int32),
+                               tf.cast(tf.floor((final_xmax-final_xmin)*width), type=tf.int32),
+                               -1])
+        final_begin = tf.Print(final_begin, [final_begin, final_size, final_bbox], msg='SLICES')
+        return (final_begin, final_size, final_bbox)
+
+      sample_distorted_bounding_box = tf.cond(is_zero, get_bbox_no_bbox, get_bbox_yes_bbox)
 
     bbox_begin, bbox_size, distort_bbox = sample_distorted_bounding_box
     if not thread_id:
@@ -269,6 +295,26 @@ def distort_image(image, height, width, bbox, thread_id=0, scope=None):
     # Restore the shape since the dynamic slice based upon the bbox_size loses
     # the third dimension.
     distorted_image.set_shape([height, width, 3])
+
+    if FLAGS.preproc_type == 2:
+      max_trans = (299 * (3./28))
+      max_rot = 30 * np.pi / 180.
+
+    if FLAGS.preproc_type == 3:
+      max_trans = (299 * (4./28))
+      max_rot = 40 * np.pi / 180.
+
+    if FLAGS.preproc_type in [2, 3]:
+      rot = tf.random_uniform((), minval=-max_rot, maxval=max_rot)
+      tx = tf.random_uniform((), minval=-max_trans, maxval=max_trans)
+      ty = tf.random_uniform((), minval=-max_trans, maxval=max_trans)
+      distorted_image = tf.contrib.image.rotate(distorted_image, rot,
+                                                interpolation='BILINEAR')
+      t_trans = tf.stack([1., 0., -tx, 0., 1., -ty, 0., 0.])
+  
+      distorted_image = tf.contrib.image.transform(distorted_image, t_trans,
+                                                   interpolation='BILINEAR')
+
     if not thread_id:
       tf.summary.image('cropped_resized_image',
                        tf.expand_dims(distorted_image, 0))
