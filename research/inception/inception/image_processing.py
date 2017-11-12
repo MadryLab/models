@@ -236,7 +236,7 @@ def distort_image(image, height, width, bbox, thread_id=0, scope=None):
   # bounding box. If no box is supplied, then we assume the bounding box is
   # the entire image.
 
-    if FLAGS.preproc_type == 1:      
+    if FLAGS.preproc_type in [1,2,3]:
       sample_distorted_bounding_box = tf.image.sample_distorted_bounding_box(
         tf.shape(image),
         bounding_boxes=bbox,
@@ -245,6 +245,9 @@ def distort_image(image, height, width, bbox, thread_id=0, scope=None):
         area_range=[0.05, 1.0],
         max_attempts=100,
         use_image_if_no_bounding_boxes=True)
+
+    import pdb
+    pdb.set_trace()
 
     bbox_begin, bbox_size, distort_bbox = sample_distorted_bounding_box
     if not thread_id:
