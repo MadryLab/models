@@ -22,6 +22,8 @@ import tensorflow as tf
 
 from tensorflow.python.ops import control_flow_ops
 
+tf.app.flags.DEFINE_integer('preproc_type', -10,
+                            """0 = no random crop, 1 = normal""")
 
 def apply_with_random_selector(x, func, num_cases):
   """Computes func(x, sel), with sel sampled from [0...num_cases-1].
@@ -43,6 +45,7 @@ def apply_with_random_selector(x, func, num_cases):
 
 
 def distort_color(image, color_ordering=0, fast_mode=True, scope=None):
+  fast_mode = True
   """Distort the color of a Tensor image.
 
   Each color distortion is non-commutative and thus ordering of the color ops
@@ -138,14 +141,58 @@ def distorted_bounding_box_crop(image,
     # allowed range of aspect ratios, sizes and overlap with the human-annotated
     # bounding box. If no box is supplied, then we assume the bounding box is
     # the entire image.
-    sample_distorted_bounding_box = tf.image.sample_distorted_bounding_box(
+    # sample_distorted_bounding_box = tf.image.sample_distorted_bounding_box(
+    #     tf.shape(image),
+    #     bounding_boxes=bbox,
+    #     min_object_covered=min_object_covered,
+    #     aspect_ratio_range=aspect_ratio_range,
+    #     area_range=area_range,
+    #     max_attempts=max_attempts,
+    #     use_image_if_no_bounding_boxes=True)
+
+    if FLAGS.preproc_type in [1,2,3]:
+      sample_distorted_bounding_box = tf.image.sample_distorted_bounding_box(
         tf.shape(image),
         bounding_boxes=bbox,
-        min_object_covered=min_object_covered,
-        aspect_ratio_range=aspect_ratio_range,
-        area_range=area_range,
-        max_attempts=max_attempts,
+        min_object_covered=0.1,
+        aspect_ratio_range=[0.75, 1.33],
+        area_range=[0.05, 1.0],
+        max_attempts=100,
         use_image_if_no_bounding_boxes=True)
+    elif FLAGS.preproc_type == 0:
+      num_bboxes = tf.shape(bbox)[1]
+      is_zero = tf.equal(num_bboxes, tf.constant(0, dtype=tf.int32))
+
+      def get_bbox_no_bbox():
+        final_bbox = tf.stack([0.,0.,1.,1.])
+        final_begin = tf.stack([0,0,0])
+        final_size = tf.stack([-1,-1,-1])
+        return (final_begin, final_size, final_bbox)
+
+      def get_bbox_yes_bbox():
+        final_ymin = tf.reduce_min(bbox[0,:,0])
+        final_xmin = tf.reduce_min(bbox[0,:,1])
+        final_ymax = tf.reduce_max(bbox[0,:,2])
+        final_xmax = tf.reduce_max(bbox[0,:,3])
+        image_shape = tf.shape(image)
+        height, width = [tf.cast(tt, tf.float32) for tt in (image_shape[0], image_shape[1])]
+
+        final_bbox = tf.stack([final_ymin, final_xmin, final_ymax, final_xmax])
+        final_begin = tf.stack([tf.cast(tf.floor(final_ymin*height), tf.int32),
+                                tf.cast(tf.floor(final_xmin*width), tf.int32),
+                                0])
+        final_size = tf.stack([tf.cast(tf.floor((final_ymax-final_ymin)*height), tf.int32),
+                               tf.cast(tf.floor((final_xmax-final_xmin)*width), tf.int32),
+                               -1])
+        final_begin = tf.Print(final_begin, [final_begin, final_size, final_bbox], 'SLICES')
+
+
+        return (final_begin, final_size, final_bbox)
+
+      sample_distorted_bounding_box = tf.cond(is_zero, get_bbox_no_bbox, get_bbox_yes_bbox)
+    else:
+      assert FLAGS.preproc_type in [0,1,2,3]
+
     bbox_begin, bbox_size, distort_bbox = sample_distorted_bounding_box
 
     # Crop the image to the specified bounding box.
@@ -201,6 +248,7 @@ def preprocess_for_train(image, height, width, bbox,
     # Restore the shape since the dynamic slice based upon the bbox_size loses
     # the third dimension.
     distorted_image.set_shape([None, None, 3])
+    
     image_with_distorted_box = tf.image.draw_bounding_boxes(
         tf.expand_dims(image, 0), distorted_bbox)
     if add_image_summaries:
@@ -237,6 +285,26 @@ def preprocess_for_train(image, height, width, bbox,
                        tf.expand_dims(distorted_image, 0))
     distorted_image = tf.subtract(distorted_image, 0.5)
     distorted_image = tf.multiply(distorted_image, 2.0)
+
+    if FLAGS.preproc_type == 2:
+      max_trans = (299 * (3./28))
+      max_rot = 30 * np.pi / 180.
+
+    if FLAGS.preproc_type == 3:
+      max_trans = (299 * (4./28))
+      max_rot = 40 * np.pi / 180.
+
+    if FLAGS.preproc_type in [2, 3]:
+      rot = tf.random_uniform((), minval=-max_rot, maxval=max_rot)
+      tx = tf.random_uniform((), minval=-max_trans, maxval=max_trans)
+      ty = tf.random_uniform((), minval=-max_trans, maxval=max_trans)
+      distorted_image = tf.contrib.image.rotate(distorted_image, rot,
+                                                interpolation='BILINEAR')
+      t_trans = tf.stack([1., 0., -tx, 0., 1., -ty, 0., 0.])
+  
+      distorted_image = tf.contrib.image.transform(distorted_image, t_trans,
+                                                   interpolation='BILINEAR')
+    
     return distorted_image
 
 
