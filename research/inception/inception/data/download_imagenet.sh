@@ -91,6 +91,11 @@ cp /scratch/engstrom/tars/${TRAIN_TARBALL} ${TRAIN_TARBALL}
 # Un-compress the individual tar-files within the train tar-file.
 echo "Uncompressing individual train tar-balls in the training data."
 
+echo "synsets_file: ${SYNSETS_FILE}"
+echo "output path: ${OUTPUT_PATH}"
+echo "synset: ${SYNSET}"
+pwd
+
 while read SYNSET; do
   echo "Processing: ${SYNSET}"
 
@@ -104,4 +109,4 @@ while read SYNSET; do
   rm -f "${SYNSET}.tar"
 
   echo "Finished processing: ${SYNSET}"
-done < "${SYNSETS_FILE}"
+done < "/scratch/engstrom/models/research/inception/${SYNSETS_FILE}"
