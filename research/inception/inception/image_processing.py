@@ -54,6 +54,10 @@ tf.app.flags.DEFINE_integer('num_preprocess_threads', 4,
 tf.app.flags.DEFINE_integer('num_readers', 4,
                             """Number of parallel readers during train.""")
 
+tf.app.flags.DEFINE_integer('preproc_type', None,
+                            """0 = no random crop, 1 = normal""")
+
+
 # Images are preprocessed asynchronously using multiple threads specified by
 # --num_preprocss_threads and the resulting processed images are stored in a
 # random shuffling queue. The shuffling queue dequeues --batch_size images
@@ -232,7 +236,14 @@ def distort_image(image, height, width, bbox, thread_id=0, scope=None):
   # range of aspect ratios, sizes and overlap with the human-annotated
   # bounding box. If no box is supplied, then we assume the bounding box is
   # the entire image.
-    sample_distorted_bounding_box = tf.image.sample_distorted_bounding_box(
+    tf.app.flags.DEFINE_integer('preproc_type', None,
+                                """0 = no random crop, 1 = normal""", required=True)
+
+    import pdb
+    pdb.set_trace()
+
+    if FLAGS.preproc_type == 1:      
+      sample_distorted_bounding_box = tf.image.sample_distorted_bounding_box(
         tf.shape(image),
         bounding_boxes=bbox,
         min_object_covered=0.1,
@@ -240,6 +251,7 @@ def distort_image(image, height, width, bbox, thread_id=0, scope=None):
         area_range=[0.05, 1.0],
         max_attempts=100,
         use_image_if_no_bounding_boxes=True)
+
     bbox_begin, bbox_size, distort_bbox = sample_distorted_bounding_box
     if not thread_id:
       image_with_distorted_box = tf.image.draw_bounding_boxes(
