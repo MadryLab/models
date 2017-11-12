@@ -54,9 +54,8 @@ tf.app.flags.DEFINE_integer('num_preprocess_threads', 4,
 tf.app.flags.DEFINE_integer('num_readers', 4,
                             """Number of parallel readers during train.""")
 
-tf.app.flags.DEFINE_integer('preproc_type', None,
+tf.app.flags.DEFINE_integer('preproc_type', 1,
                             """0 = no random crop, 1 = normal""")
-
 
 # Images are preprocessed asynchronously using multiple threads specified by
 # --num_preprocss_threads and the resulting processed images are stored in a
@@ -236,8 +235,6 @@ def distort_image(image, height, width, bbox, thread_id=0, scope=None):
   # range of aspect ratios, sizes and overlap with the human-annotated
   # bounding box. If no box is supplied, then we assume the bounding box is
   # the entire image.
-    tf.app.flags.DEFINE_integer('preproc_type', None,
-                                """0 = no random crop, 1 = normal""")
 
     if FLAGS.preproc_type == 1:      
       sample_distorted_bounding_box = tf.image.sample_distorted_bounding_box(
