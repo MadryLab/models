@@ -251,7 +251,7 @@ def distort_image(image, height, width, bbox, thread_id=0, scope=None):
       is_zero = tf.equal(num_bboxes, tf.constant(0, dtype=tf.int32))
 
       def get_bbox_no_bbox():
-        final_bbox = tf.stack([0,0,1,1])
+        final_bbox = tf.stack([0.,0.,1.,1.])
         final_begin = tf.stack([0,0,0])
         final_size = tf.stack([-1,-1,-1])
         return (final_begin, final_size, final_bbox)
@@ -261,16 +261,19 @@ def distort_image(image, height, width, bbox, thread_id=0, scope=None):
         final_xmin = tf.reduce_min(bbox[0,:,1])
         final_ymax = tf.reduce_max(bbox[0,:,2])
         final_xmax = tf.reduce_max(bbox[0,:,3])
-        height, width, _ = tf.shape(image)
+        image_shape = tf.shape(image)
+        height, width = [tf.cast(tt, tf.float32) for tt in (image_shape[0], image_shape[1])]
 
         final_bbox = tf.stack([final_ymin, final_xmin, final_ymax, final_xmax])
-        final_begin = tf.stack([tf.cast(tf.floor(final_ymin*height), type=tf.int32),
-                                tf.cast(tf.floor(final_xmin*width), type=tf.int32),
+        final_begin = tf.stack([tf.cast(tf.floor(final_ymin*height), tf.int32),
+                                tf.cast(tf.floor(final_xmin*width), tf.int32),
                                 0])
-        final_size = tf.stack([tf.cast(tf.floor((final_ymax-final_ymin)*height), type=tf.int32),
-                               tf.cast(tf.floor((final_xmax-final_xmin)*width), type=tf.int32),
+        final_size = tf.stack([tf.cast(tf.floor((final_ymax-final_ymin)*height), tf.int32),
+                               tf.cast(tf.floor((final_xmax-final_xmin)*width), tf.int32),
                                -1])
-        final_begin = tf.Print(final_begin, [final_begin, final_size, final_bbox], msg='SLICES')
+        final_begin = tf.Print(final_begin, [final_begin, final_size, final_bbox], 'SLICES')
+
+
         return (final_begin, final_size, final_bbox)
 
       sample_distorted_bounding_box = tf.cond(is_zero, get_bbox_no_bbox, get_bbox_yes_bbox)
