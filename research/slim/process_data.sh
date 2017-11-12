@@ -11,8 +11,8 @@ rm -rf $DATA_DIR
 mkdir -p $DATA_DIR
 
 bazel clean
-
-bazel build download_and_convert_imagenet
-
+cd ..
+bazel build slim/download_and_convert_imagenet
 # run it
-bazel-bin/download_and_convert_imagenet "${DATA_DIR}"
+cd ..
+bazel-bin/research/slim/download_and_convert_imagenet "${DATA_DIR}"
